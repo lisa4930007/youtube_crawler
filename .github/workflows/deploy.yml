@@ -39,6 +39,7 @@ jobs:
           token_format: 'access_token' # 👈 強制要求產生 Access Token
           workload_identity_provider: 'projects/114576836798/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
           service_account: '114576836798-compute@developer.gserviceaccount.com'
+          project_id: 'hahow-chart' # 👈 加上這一行
 
       # 2. 設定 gcloud 工具
       - name: 'Set up Cloud SDK'
@@ -64,3 +65,4 @@ jobs:
           gcloud run jobs update youtube-crawler-job \
             --image us-central1-docker.pkg.dev/hahow-chart/youtube-crawler-repo/youtube-crawler:${{ github.sha }} \
             --region us-central1
+            --project hahow-chart # 👈 加上這一行，確保萬無一失
