@@ -36,6 +36,7 @@ jobs:
       - id: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
+          token_format: 'access_token' # 👈 強制要求產生 Access Token
           workload_identity_provider: 'projects/114576836798/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
           service_account: '114576836798-compute@developer.gserviceaccount.com'
 
@@ -45,8 +46,11 @@ jobs:
 
       # 3. 設定 Docker 認證 (讓 GitHub 能量推映像檔到 Artifact Registry)
       - name: 'Docker Auth'
-        run: |
-          gcloud auth configure-docker us-central1-docker.pkg.dev
+        uses: 'docker/login-action@v3'
+        with:
+          registry: 'us-central1-docker.pkg.dev'
+          username: 'oauth2accesspleasetoken'
+          password: '${{ steps.auth.outputs.access_token }}'
 
       # 4. 打包並推送 Docker 映像檔
       - name: 'Build and Push Container'
