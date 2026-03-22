@@ -1,0 +1,62 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ] # 只有 push 到 main 分支時才執行
+
+jobs:
+  # --- 任務 1: 自動化測試 ---
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          pytest test_crawler.py
+
+  # --- 任務 2: 部署到 GCP (只有測試過關才會執行) ---
+  deploy:
+    needs: test # 強制要求 test 任務必須成功 (PASSED)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write' # 這是 WIF 必備的權限
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. 透過 WIF 登入 GCP (無金鑰！)
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: 'projects/114576836798/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: '114576836798-compute@developer.gserviceaccount.com'
+
+      # 2. 設定 gcloud 工具
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      # 3. 設定 Docker 認證 (讓 GitHub 能量推映像檔到 Artifact Registry)
+      - name: 'Docker Auth'
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      # 4. 打包並推送 Docker 映像檔
+      - name: 'Build and Push Container'
+        run: |
+          docker build -t us-central1-docker.pkg.dev/hahow-chart/youtube-crawler-repo/youtube-crawler:${{ github.sha }} .
+          docker push us-central1-docker.pkg.dev/hahow-chart/youtube-crawler-repo/youtube-crawler:${{ github.sha }}
+
+      # 5. 更新 Cloud Run Job
+      - name: 'Deploy to Cloud Run Job'
+        run: |
+          gcloud run jobs update youtube-crawler-job \
+            --image us-central1-docker.pkg.dev/hahow-chart/youtube-crawler-repo/youtube-crawler:${{ github.sha }} \
+            --region us-central1
