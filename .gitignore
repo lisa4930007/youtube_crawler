@@ -1,0 +1,24 @@
+# === 1. 安全與金鑰 (絕對不能上傳) ===
+.env
+*.json
+# 排除所有 JSON，但如果你有某些設定用的 JSON 需要上傳，可以用 !filename.json 排除
+!Dockerfile
+
+# === 2. Python 執行產生的暫存檔 ===
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+ENV/
+
+# === 3. 爬蟲產生的資料檔 ===
+# 避免把測試抓下來的資料推上 GitHub
+*.csv
+*.xlsx
+*.log
+
+# === 4. 作業系統產生的雜物 ===
+.DS_Store
+Thumbs.db

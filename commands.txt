@@ -1,0 +1,64 @@
+$ docker build -t youtube-crawler .
+
+
+=============================================================================================================================================
+
+
+$ docker run --rm \
+  --env-file .env \
+  -v "$(pwd):/app" \
+  -v /Users/lisalai/.config/gcloud/application_default_credentials.json:/tmp/adc.json:ro \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/adc.json \
+  youtube-crawler
+
+
+
+
+因為我有記得你之前設定的偏好：「處理 GCP 相關開發時，請優先使用 Workload Identity Federation (WIF)」，所以我特別向你說明一下現在這個狀況：
+
+現在（本地端 Docker 測試）： 我們透過上面的指令，用本地的 ADC 憑證來「模擬」無金鑰登入。
+
+未來（部署到 Cloud Run）： 當你把這個 Docker 映像檔部署到 GCP 的 Cloud Run 時，請把剛剛加的憑證掛載參數全部拿掉！Cloud Run 原生支援無金鑰驗證，它會自動注入環境變數與 WIF / 服務帳號身分。屆時你的程式碼完全不用改，就能無縫、安全地存取 GCS。
+
+
+為了貫徹你**「不下載傳統 Service Account JSON 金鑰」**的安全原則，我們要在你的電腦上產生專屬於你個人帳號的 ADC 憑證，這樣 Docker 就能暫時借用你的身份去上傳檔案到 GCS。
+步驟 1：安裝 Google Cloud CLI (gcloud)
+$ brew install --cask google-cloud-sdk
+
+步驟 2：執行 ADC 登入指令
+$ gcloud auth application-default login
+
+
+步驟 3：確認憑證已產生
+Credentials saved to file: [/Users/lisalai/.config/gcloud/application_default_credentials.json]
+
+
+
+步驟 4：在 .env 加入 GCP 專案 ID
+
+錯誤訊息 Project was not passed and could not be determined from the environment 的意思是：你雖然把「鑰匙 (ADC 憑證)」交給了 Docker，但你沒有告訴它要開哪一扇「門 (GCP 專案)」。
+
+在你的本機電腦上，gcloud 工具知道你預設的專案是哪一個。但是 Docker 容器是一個完全隔離的空間，它拿到了你的身分，卻不知道這筆上傳 GCS 的操作應該算在哪個 GCP 專案（Project ID）頭上。
+
+未來部署到 Cloud Run 時，雲端環境會自動提供這個 Project ID，但在本地端我們必須手動指定給它。
+
+🛠️ 解決方法：在 .env 加入 GCP 專案 ID
+
+
+=============================================================================================================================================
+
+
+$ docker run --rm \
+  --env-file .env \
+  -v "$(pwd):/app" \
+  youtube-crawler \
+  pytest test_crawler.py -v
+
+指令拆解說明：
+
+我們不再像之前那樣掛載 -v ~/.config/gcloud/... 的 ADC 憑證了。因為在跑單元測試時，我們使用了 @patch 和 MagicMock 來「模擬」外部連線（GCP 和 LINE），所以根本不需要真實的權限！
+
+最後的 pytest test_crawler.py -v：這會覆蓋掉 Dockerfile 預設執行的 python main.py，改為呼叫 pytest 來跑你的測試檔。-v 參數會讓終端機印出詳細的（verbose）測試結果，讓你看清楚每個 Test Case 是否都有顯示綠色的 PASSED。
+
+
+
