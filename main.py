@@ -1,4 +1,5 @@
 import os
+import datetime
 import time
 import logging
 from dotenv import load_dotenv
@@ -39,10 +40,13 @@ def main():
         
         # 2. 執行爬蟲
         df = crawler.run(channel_id=channel_id, max_results=10)
+
+        today = datetime.date.today().strftime('%Y%m%d')
+        timestamp = int(time.time())
         
         # 3. 執行上傳與通知
         if not df.empty:
-            filename = f"video_stats_{int(time.time())}.csv"
+            filename = f"youtube_{channel_id}_{today}_{timestamp}.csv"
 
             # 呼叫 GCS 上傳
             is_uploaded = uploader.upload_dataframe(df, filename)
