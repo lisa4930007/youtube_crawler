@@ -64,5 +64,5 @@ jobs:
         run: |
           gcloud run jobs update youtube-crawler-job \
             --image us-central1-docker.pkg.dev/hahow-chart/youtube-crawler-repo/youtube-crawler:${{ github.sha }} \
-            --region us-central1
-            --project hahow-chart # 👈 加上這一行，確保萬無一失
+            --region us-central1 \
+            --project hahow-chart
