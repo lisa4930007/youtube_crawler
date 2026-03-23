@@ -38,7 +38,7 @@ jobs:
         with:
           token_format: 'access_token' # 👈 強制要求產生 Access Token
           workload_identity_provider: 'projects/114576836798/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
-          service_account: '114576836798-compute@developer.gserviceaccount.com'
+          service_account: 'youtube-crawler-sa@hahow-chart.iam.gserviceaccount.com'
           project_id: 'hahow-chart' # 👈 加上這一行
 
       # 2. 設定 gcloud 工具
